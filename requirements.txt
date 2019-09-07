@@ -1,0 +1,10 @@
+wavelink
+discord
+colorama
+mysql-connector-python
+jishaku
+Pillow
+asyncio
+requests
+requests_oauthlib
+flask
