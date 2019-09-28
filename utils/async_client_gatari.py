@@ -52,7 +52,7 @@ class Client:
  
     
   
-  async def get_player(self, playername: str) -> dict:
+  async def get_player(self, playername: str, mode=0) -> dict:
     """
     Fetch player info from osu! servers.
     
@@ -62,7 +62,7 @@ class Client:
     """
     session = await self.get_session()
     
-    async with session.get(self.gatari_api + "stats?u={0}&mode=0".format(playername)) as response:
+    async with session.get(self.gatari_api + "stats?u={0}&mode={1}".format(playername, mode)) as response:
       data = await response.json()
       
     return data['stats']

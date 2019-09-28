@@ -8,7 +8,7 @@ import config
 class Osu(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db = ub.DBUtils()
+        self.db = ub.DBUtils(self.bot)
         self.u = ii.util(self.bot)
         self.client = api.Client(None)
         self.utils = ii.util(self.bot)
@@ -264,13 +264,20 @@ class Osu(commands.Cog):
 
 
     @commands.command()
-    async def gatari_user(self, ctx: commands.Context, user=None):
+    async def gatari_user(self, ctx: commands.Context, user=None, mode=0):
         if not user:
             return await ctx.send('Provide user')
 
-        
-        data = await self.client.get_player(user)
-        data2 = await self.client.get_profile(user)
+        if mode not in (0,1,2,3):
+            return await ctx.send(f'Invalid mode avamble: `0 - osu!, 1- Taiko, 2 - CTB, 3 - osu!mania`')
+
+
+        try:
+            data = await self.client.get_player(user, mode=mode)
+            data2 = await self.client.get_profile(user)
+        except Exception as e:
+            return await ctx.send('This user is not registred on gatari')
+
         SSh_emote = str(discord.utils.get(self.bot.emojis, name='rank_ssp'))
         SS_emote = str(discord.utils.get(self.bot.emojis, name='rank_ss'))
         S_emote = str(discord.utils.get(self.bot.emojis, name='rank_sp'))

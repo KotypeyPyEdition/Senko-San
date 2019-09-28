@@ -9,7 +9,9 @@ import PIL.Image
 from pytesseract import image_to_string
 import pytesseract
 import qrcode
+import json
 from utils import caesar as p
+from functools import partial
 class Textutils(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -73,17 +75,20 @@ class Textutils(commands.Cog):
                 return await ctx.send("а не пашелка ты нахой с такими запросами?")
         embed = discord.Embed(name='calc')
         try:
+            po = {"cmd": 'python main.cpp', "src": f'print({expression})'}
+            r = requests.post('http://coliru.stacked-crooked.com/compile', data=json.dumps(po))
             embed.colour = discord.Colour.blue()
-            embed.add_field(name='Result', value=f'```{eval(expression, {}, {})}```')
+            embed.add_field(name='Result', value=f'```{r.text}```')
         except Exception as e:
-            embed.colour = discord.Colour.red()
             embed.add_field(name='Result', value='Error stucked')
+            embed.colour = discord.Colour.red()
+            
 
         await ctx.send(embed=embed)
 
     @commands.command(name='read')
     async def image(self, ctx, url = None, lang= None):
-        message = await ctx.send('> Super Sagiri`s image to text module is working')
+        message = await ctx.send('> Super Senko`s image to text module is working')
         import cv2 as cv
         import numpy as np
 
@@ -107,7 +112,7 @@ class Textutils(commands.Cog):
             output = pytesseract.image_to_string(img, lang=lang)
             if len(output) == 0:
                 output = 'No text found :eyes:'
-            embed = discord.Embed(title='Super Sagiri`s read module', colour=discord.Colour.green())
+            embed = discord.Embed(title='Super Senko`s read module', colour=discord.Colour.green())
             embed.add_field(name='Output', value='```{}```'.format(output))
             embed.set_footer(text='Original by TehnokraT#4879')
             await message.edit(embed=embed, content=None)

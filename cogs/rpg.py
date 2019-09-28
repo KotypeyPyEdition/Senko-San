@@ -6,7 +6,7 @@ from utils import pm
 class Rpg(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.d = ud.DBUtils()
+        self.d = ud.DBUtils(self.bot)
         
         
     @commands.command(name='inventory', aliases=['inv'])

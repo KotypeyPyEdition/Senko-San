@@ -1,12 +1,13 @@
 import discord
 from PIL import Image, ImageDraw, ImageFont
 import utils.database as dbu
-import requests
 import io
 import random
+from functools import partial
 class ImgUtils:
-    def __init__(self):
-        self.db = dbu.DBUtils()
+    def __init__(self, bot):
+        self.bot = bot
+        self.db = dbu.DBUtils(bot)
 
 
     def level_up_image(self, user: discord.User, lvl: int):
@@ -22,36 +23,36 @@ class ImgUtils:
         return lvl_up
 
 
+    async def profile_image(self, user: discord.User) -> bytes:
+        a = io.BytesIO()
+        dd = await self.db.get_user_leveling(user)
+        desc = await self.db.get_user_desc(user)
 
-    def trigger_image(self, url):
-        image = self.fetch_image_url(url)
-        draw = ImageDraw.Draw(image) #Создаем инструмент для рисования. 
-        width = image.size[0] #Определяем ширину. 
-        height = image.size[1] #Определяем высоту. 	
-        pix = image.load() #Выгружаем значения пикселей.
-        depth = 10
-        for i in range(width):
-            for j in range(height):
-                a = pix[i, j][0]
-                b = pix[i, j][1]
-                c = pix[i, j][2]
-                S = (a + b + c) // 3
-                a = S + depth * 2
-                b = S + depth
-                c = S
-                a = 10
-                b = b
-                c = c
-                draw.point((i, j), (a, b, c))
+        with Image.open("image_tools/template.png") as res:
+            drow = ImageDraw.Draw(img)
+            user_avatar = await self.fetch_image_url(user.avatar_url_as(format='png', size=64))
+            im2 = Image.open(user_avatar)
+		#await ctx.send(str(ctx.message.author.avatar_url_as(format='png')) + "?size=64x64")
+            font = ImageFont.truetype("image_tools/font.ttf", 25)
+            desc_font = ImageFont.truetype("image_tools/desc_font.ttf", 20)
+            user_desc = textwrap.fill(desc, width=17)
+            drow.text((200, 245), user.name, font=font)
+            drow.text((60, 300), 'level: ', font=font)
+            drow.text((130, 300), str(dd['level']), font=font)
+            drow.text((60, 350), 'xp: ', font=font)
+            drow.text((100, 350), str(dd['xp']) + "/" + str(dd['level']*300) , font=font)
+            drow.text((60, 400), 'gold: ', font=font)
+            drow.text((120, 400), str(dd['gold']) , font=font)
+            drow.text((280, 315), user_desc , font=desc_font)
+            
+        
+            img.save(a, format='PNG')
+        a.seek(0)
+        return a
 
-        image.save(f"temp_images/{random.randrange(9999999999)}.png", format='PNG')
+    async def fetch_image_url(self, url: str) -> bytes:
+        async with self.bot.session.get(url) as res:
+            data = await res.read()
 
 
-    def fetch_image_url(self, url: str):
-        r = requests.get(url)
-        data = r.content
-        stream = io.BytesIO(data)
-
-        im = Image.open(stream)
-
-        return im
+        return data

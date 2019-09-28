@@ -4,32 +4,35 @@ import config
 from aiohttp import ClientSession
 from discord.ext import commands
 from colorama import init, Fore
-
+from utils import redis
+from utils import DiscordBotListAPI
 init()
-
-class RknBot(commands.Bot):
+class SenkoSanBot(commands.Bot):
 
   def __init__(self, *args, **kwargs):
     
     super().__init__(
       *args, **kwargs
     )
-
+    self.redis = redis.Redis()
     self.load()
-
     self.blacklisted_cache = {}
+    
   
   async def in_blacklist(self, ctx):
-
     if not self.blacklisted_cache:
-    
-      async with self.session.get("http://naomi.fun:8080/api/blacklist") as response:
+        self.blacklisted_cache = []
+        usr1 = {'id': 554539601977409536, 'proof': None, 'reason': 'Вийди звiси розбйник'}
+        self.blacklisted_cache.append(usr1)
 
-        response = await response.json()
-      
-      self.blacklisted_cache = response
     
     return not ctx.author in self.blacklisted_cache
+
+
+  async def is_enabled(self, ctx):
+    return not ctx.command.name in config.disabled_commands
+  async def is_owner(self, ctx):
+    return ctx.id in config.admins
 
   async def ref(self):
 
@@ -37,16 +40,18 @@ class RknBot(commands.Bot):
 
     while not self.is_closed():
 
-      async with self.session.get(config.lavalink_url):
-    
-        print('Request sent!')
+      async with self.session.get('http://' + config.lavalink_host):
 
+        print('Request sent!')
       await asyncio.sleep(60)
 
   def load(self):
 
     self.add_check(
       self.in_blacklist
+    )
+    self.add_check(
+      self.is_enabled
     )
 
     self.remove_command('help')
@@ -66,7 +71,8 @@ class RknBot(commands.Bot):
       'cogs.rpg',
       'cogs.textutils',
       'cogs.nsfw',
-      'cogs.osu'
+      'cogs.osu',
+      'cogs.Dbl'
     )
 
     for i in modules:
@@ -83,7 +89,7 @@ class RknBot(commands.Bot):
             
             
   async def on_ready(self):
-    
+
     await self.change_presence(
       activity=discord.Streaming(
         name=f"{config.prefix}help to help", 
@@ -94,7 +100,6 @@ class RknBot(commands.Bot):
     self.session = ClientSession(
       loop=self.loop
     )
-
     self.loop.create_task(
       self.ref()
     )
@@ -112,10 +117,9 @@ class RknBot(commands.Bot):
     super().run(
       token
     )
-
 if __name__ == "__main__":
 
-  bot = RknBot(
+  bot = SenkoSanBot(
     command_prefix=commands.when_mentioned_or(
       config.prefix
     ),

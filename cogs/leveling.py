@@ -21,7 +21,7 @@ class Leveling(commands.Cog):
             return
 
         """
-        db1 = utils.database.DBUtils()
+        db1 = utils.database.DBUtils(self.bot)
         d = utils.imaging.ImgUtils()
         db1.create_user_profile(msg.author)
         db1.create_user_inventory(msg.author)

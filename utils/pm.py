@@ -12,7 +12,7 @@ class Pm:
         self.aid = atacker
         self.did = defender
         self.colors = [discord.Colour.teal(), discord.Colour.blue(), discord.Colour.orange(), discord.Colour.green(), discord.Colour.red(), discord.Colour.magenta()]
-        self.db = database.DBUtils()
+        self.db = database.DBUtils(ctx.bot)
         self.hp = {}
         
         
@@ -24,8 +24,8 @@ class Pm:
         self.defender = await self.bot.fetch_user(self.did)
         self.turn = self.atacker
         self.chached_inv = {}
-        self.chached_inv[self.aid] = self.db.get_user_inventory_list(self.aid)
-        self.chached_inv[self.did] = self.db.get_user_inventory_list(self.did)
+        self.chached_inv[self.aid] =  {}
+        self.chached_inv[self.did] = {}
         self.hp[self.aid] = 100000
         self.hp[self.did] = 100000
         self.hp['max'] = 100000

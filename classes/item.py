@@ -1,11 +1,10 @@
 import utils.database as ub
 
 class item:
-    def __init__(self, tid):
+    def __init__(self, tid, bot):
         self.id = tid
         self.db = ub.DBUtils()
-        db, cursor = self.db.connect()
-        cursor.execute('SELECT * FROM `items` WHERE item_id = {}'.format(self.id))
+        self.execute('SELECT * FROM `items` WHERE item_id = {}'.format(self.id))
         self.dict = cursor.fetchall()[0]
         self.title = self.dict[1]
         self.cost = self.dict[2]

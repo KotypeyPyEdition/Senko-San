@@ -14,49 +14,23 @@ import qrcode
 import io
 import json
 import apiai
+import config
 import requests
 import time
+import datetime
+from functools import partial
+from utils import imaging
 class User(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
-		self.d = dbu.DBUtils()
+		self.d = dbu.DBUtils(self.bot)
+		self.img_utils = imaging.ImgUtils(self.bot)
 	@commands.cooldown(1.0, 8, commands.BucketType.user)
 	@commands.command(name="me")
 	async def me(self, ctx):
-		d = dbu.DBUtils()
-		dd = d.get_user_leveling(ctx.message.author)
-		img = Image.open("image_tools/template.png")
-		drow = ImageDraw.Draw(img)
-		im2 = self.fetch_image_url(str(ctx.message.author.avatar_url_as(format='png')) + "?size=128x18")
-		#await ctx.send(str(ctx.message.author.avatar_url_as(format='png')) + "?size=64x64")
-		img.paste(im2, (53,133))
-		font = ImageFont.truetype("image_tools/font.ttf", 25)
-		desc_font = ImageFont.truetype("image_tools/desc_font.ttf", 20)
-		user_desc = textwrap.fill(d.get_user_desc(ctx.message.author), width=17)
-		drow.text((200, 245), ctx.message.author.name, font=font)
-		drow.text((60, 300), 'level: ', font=font)
-		drow.text((130, 300), str(dd['level']), font=font)
-		drow.text((60, 350), 'xp: ', font=font)
-		drow.text((100, 350), str(dd['xp']) + "/" + str(dd['level']*300) , font=font)
-		drow.text((60, 400), 'gold: ', font=font)
-		drow.text((120, 400), str(dd['gold']) , font=font)
-		drow.text((280, 315), user_desc , font=desc_font)
-		a = io.BytesIO()
-		
-		img.save(a, format='PNG')
-		a.seek(0)
-		f = discord.File(fp=a, filename="profile.png")
-		await ctx.send(file=f)
-
-
-	def fetch_image_url(self, url: str):
-		r =requests.get(url)
-		data = r.content
-		stream = io.BytesIO(data)
-
-		im = Image.open(stream)
-
-		return im
+		func = partial(self.img_utils.profile_image, ctx.author)
+		a = await self.bot.loop.run_in_executor(None, func)
+		await ctx.send('disabled')
 
 
 
@@ -213,9 +187,9 @@ class User(commands.Cog):
 	@commands.command(name='ai')
 	async def ai(self, ctx, *, message=None):
 		if not message:
-			await ctx.send(f'Usage: {ctx.prefix}ai {text}')
+			await ctx.send(f'Usage: {ctx.prefix}ai hello')
 			return
-		request = apiai.ApiAI('00a12464e6994c73adabadfb24f434ab').text_request()  # Токен API к Dialogflow
+		request = apiai.ApiAI(config.apiai).text_request()  # Токен API к Dialogflow
 		request.lang = 'en'  # На каком языке будет послан запрос
 		#request.session_id = 'Batlab'  # ID Сессии диалога (нужно, чтобы потом учить бота)
 		request.query = message  # Посылаем запрос к ИИ с сообщением от юзера
@@ -257,11 +231,11 @@ class User(commands.Cog):
 
 	@commands.command()
 	async def blacklist(self, ctx):
-		r = requests.get('http://naomi.fun:8080/api/blacklist').json()
+		r = self.bot.blacklisted_cache
 		pag = paginator.Paginator(ctx, self.bot, 'None')
 		for i in r:
 			try:
-				usr = await self.bot.get_user(i['id'])
+				usr = await self.bot.fetch_user(i['id'])
 				fullname = f'{usr.name}#{usr.discriminator}'
 			except Exception as e:
 				fullname = 'Cannot get data maybe i don`t have mutual server with this user'
@@ -269,6 +243,83 @@ class User(commands.Cog):
 			pag.add_page(paginator.Entry(fullname, i['reason'], i['proof']))
 
 		await pag.paginate()
+
+
+	@commands.has_permissions(manage_message=True)
+	@commands.command()
+	async def set_name(self, ctx, *, name=None):
+		if not name:
+			return await ctx.send(f'Usage: {ctx.prefix}set_name name')
+		name = name.replace(' ', '\u2009')
+		await ctx.channel.edit(name=name)
+		await ctx.send('Channel updated!')
+	@commands.command()
+	async def embed(self, ctx: commands.Context, *, code: str=None):
+
+		help_ = """
+		tags:
+		footer : 'footer here'
+		fields: [{'title': 'AAAAAA', 'value': 'ya oru kak bezbashiniy', 'inline': 0}] 
+		title: 'title here'
+		image: 'image_url'
+		color: {'r': 0, 'g': 255, 'b': 0}
+		author: {'name': 'uname', 'url': '<https://i.imgur.com/FyA5dhF.png>', icon_url='<https://i.imgur.com/FyA5dhF.png>'}
+		timestamp: 0 - no, 1 or higher - yes
+		thumbail: '<https://i.imgur.com/FyA5dhF.png>'
+		description: 'description'
+		example: ;embed `{'title': 'Hello', 'desciprion': 'AAAAAAAAAAAAAAAAA', 'footer': 'footer_here', 'fields': [{'title': 'mraz', 'value': '55x55'}, {'title': 'mi rezem kinolentu', 'value': '55x55'}], 'color': {'r':0, 'g':0,'b': 255}, 'image': '<https://i.imgur.com/SDd0M5y.png>'}`
+		"""
+		emj = discord.utils.get(self.bot.emojis, name='loading')
+		await ctx.message.add_reaction(emj)
+
+		if not code:
+			return await ctx.send(help_)
+		
+		try:
+			code = code.replace("'", "\"")
+			codes = json.loads(code)
+			embed = discord.Embed()
+		except Exception as e:
+			await ctx.send(f'Parse error: \n {e}')
+		else:
+			try:
+				for i in codes:
+					if i == 'title':
+						embed.title = codes[i]
+					elif i == "color":
+						embed.colour = discord.Color.from_rgb(codes[i]['r'], codes[i]['g'], codes[i]['b'])
+					elif i == "fields":
+						for x in codes[i]:
+							try:
+								inline = x['inline']
+							except Exception as e:
+								x['inline'] = 0
+							if x['inline'] == 0:
+								inline=False
+							else:
+								inline=True
+							embed.add_field(name=x['title'], value=x['value'], inline=inline)
+					elif i == 'image':
+						embed.set_image(url=codes[i])
+					elif i == 'footer':
+						embed.set_footer(text=codes[i])
+					elif i == 'description':
+						embed.description = codes[i]
+					elif i == 'timestamp':
+						if codes[i] == 0:
+							embed.timestamp = None
+						else:
+							embed.timestamp = datetime.datetime.now()
+					elif i == 'thumbail':
+						embed.set_thumbnail(url=codes[i])
+					elif i == 'author':
+						embed.set_author(codes[i]['name'], url=codes[i]['url'], icon_url=codes[i]['icon_url'])
+					
+			except Exception as e:
+				return await ctx.send(f'In Embed Build Excpetion: {e}')
+			
+
+			await ctx.send(embed=embed)
 
 
 	@commands.command()

@@ -53,7 +53,7 @@ class Paginator:
         embed.set_footer(text='page {}/{}'.format(page_c + 1, len(self.pages)))
         embed.set_thumbnail(url=self.ctx.author.avatar_url_as(format='png', size=128))
         embed.color = choice(self.colors)
-        await message.edit(embed=embed, content='None')
+        await message.edit(embed=embed, content=None)
         
         while self.active == True:
             try:
@@ -69,9 +69,11 @@ class Paginator:
 
                 
             else:
+                try: await self.message.remove_reaction(r, u)
+                except: pass
                 if str(r) == '▶':
                     p = self.page_c + 1 
-
+                   
                     await self.to_page(p)
                 elif str(r) == '◀':
                     p = self.page_c - 1
@@ -98,7 +100,7 @@ class Paginator:
 
 
     async def to_page(self, page):
-        
+
         if page == len(self.pages):
             return
         elif page < 0:

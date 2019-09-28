@@ -5,37 +5,26 @@ from utils import database
 class Mod(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.database = database.DBUtils()
+        self.database = database.DBUtils(self.bot)
 
 
 
     @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
     @commands.command(name='ban')
-    async def ban(self, ctx):
-        if len(ctx.message.mentions) == 0:
-            await ctx.send('Provide user')
-            return
-        member = ctx.message.mentions[0]
-        if str(ctx.prefix) == '<@{}>'.format(ctx.guild.me.id):
-            member = ctx.message.mentions[1]
+    async def ban(self, ctx, member : discord.Member=None, *, reason=None):
+        if not member:
+            await ctx.send("Provide user")
         if member.id == ctx.message.author.id or member.id == ctx.message.guild.me.id:
             await ctx.send('You can`t ban me or youself or roles! ')
-            return
-        if member.bot == True:
-            await ctx.send('Дайте ботам свободу уже!!!')
             return
         if member.top_role.position >= ctx.message.guild.me.top_role.position:
             await ctx.send('Her role is highter than my! i can`t ban he')
             return
-        reason = ctx.message.content.split(' ')
-        del reason[0]
-        del reason[0]
-        del reason[0]
-        if len(reason) == 0:
+        if not reason:
             reason = 'None'
         else:
-            reason = ' '.join(reason)
+            reason = reason
 
         embed = discord.Embed(title='Confirmation', description='Ok, ill ban {} with reason `{}` \n if you agree press ✅'.format(member.name, reason))
         embed.color = 0x32a852
@@ -49,6 +38,7 @@ class Mod(commands.Cog):
             await ctx.send('Timed out!')
         else:
             if str(r) == '✅':
+                await member.send(f"You banned at {ctx.guild.name} with reason {reason} by {ctx.author.name}")
                 await ctx.message.guild.ban(member, reason=reason, delete_message_days=7)
                 await ctx.send('Im banned {} with reason `{}` good luck :)'.format(f'<@{member.id}>', reason))
             else:
@@ -59,30 +49,19 @@ class Mod(commands.Cog):
     @commands.has_permissions(kick_members=True)
     @commands.bot_has_permissions(kick_members=True)
     @commands.command(name='kick')
-    async def kick(self, ctx):
-        if len(ctx.message.mentions) == 0:
+    async def kick(self, ctx, member: discord.Member=None, *, reason=None):
+        if not member:
             await ctx.send('Provide user')
             return
-        member = ctx.message.mentions[0]
-        if str(ctx.prefix) == '<@{}>'.format(ctx.guild.me.id):
-                member = ctx.message.mentions[1]
         if member.id == ctx.message.author.id or member.id == ctx.message.guild.me.id:
                 await ctx.send('You can`t kick me or youself or roles! ')
-                return
-        if member.bot == True:
-                await ctx.send('Дайте ботам свободу уже!!!')
                 return
         if member.top_role.position >= ctx.message.guild.me.top_role.position:
                 await ctx.send('Her role is highter than my! i can`t kick he')
                 return
         reason = ctx.message.content.split(' ')
-        del reason[0]
-        del reason[0]
-        del reason[0]
-        if len(reason) == 0:
+        if not reason:
                 reason = 'None'
-        else:
-                reason = ' '.join(reason)
             
         embed = discord.Embed(title='Confirmation', description='Ok, ill kick {} with reason `{}` \n if you agree press ✅'.format(member.name, reason))
         embed.color = 0x32a852
@@ -104,32 +83,20 @@ class Mod(commands.Cog):
 
     @commands.command(name='clear')
     @commands.has_permissions(read_message_history=True, manage_messages=True)
-    async def clear(self, ctx, amout=None, member=None):
+    async def clear(self, ctx: commands.Context, amout=None):
+        cur_lang = await self.bot.redis.get('{ctx.guild.id}_lang')
+        cur_lang = str(cur_lang.strip('b\''))
+        channel = ctx.message.channel
         if amout == None:
-            await ctx.send('Provide amout of messages!(max 100)')
+            await ctx.send(self.bot.language.get_message(f'{cur_lang}.clear_cmd_provide_msg_amout'))
             return
         if int(amout) > 100:
-            await ctx.send('Maximum discord limit is 100 i can`t delete more than 100 messages')
-            return
-        channel = ctx.message.channel
-        ments = ctx.message.mentions
-        msgs = []
-        if len(ments) == 0:
-            async for i in channel.history(limit=int(amout)):
-                msgs.append(i)
-
-            await ctx.channel.purge(limit=len(msgs))
-        else:
-            a = ctx.message.mentions[0]
-            if str(ctx.prefix) == '<@{}>'.format(ctx.guild.me.id):
-                    a = ctx.message.mentions[1]
-            async for i in channel.history(limit=int(amout)):
-                if i.author.id == a.id:
-                    msgs.append(i)
-            await ctx.channel.purge(limit=len(msgs), check=lambda m: m.author.id == a.id)
-
+            return await ctx.send(self.bot.language.get_message(f'{cur_lang}.clear_cmd_max_limit'))
         
-        await ctx.send('UwU! im deletet {} messages'.format(len(msgs)))
+
+
+        await ctx.channel.purge(amout)
+        await ctx.send(self.bot.language.get_message(f'{cur_lang}.clear_cmd_max_limit'))
  
 
     
@@ -172,9 +139,31 @@ class Mod(commands.Cog):
       	await i.set_permissions(usr, overwrite=None)
 
       await ctx.send("Okay, now {} can talk".format(usr.name))
-   
 
+
+
+    @commands.command()
+    @commands.has_permissions(manage_guild=True)
+    async def language(self, ctx: commands.Context, lang=None):
+        cur_lang =  await str(self.bot.redis.get('{ctx.guild.id}_lang'))
+        cur_lang = cur_lang.strip('b\'')
+        await ctx.send(cur_lang)
+        if not lang:
+            res = await str(self.bot.redis.get('{ctx.guild.id}_lang'))
+            res = res.strip('b\'')
+
+            msg = self.bot.language.get_message('{cur_lang}.curent_lang').format(res)
+            return await ctx.send(f'{msg}')
+
+        if lang not in  await self.bot.language.get_languages():
+            msg = self.bot.language.get_message(f'{cur_lang}.available_langs').format(', '.join(self.bot.language.get_languages()))
+            return await ctx.send(msg)
+        
+        await self.bot.redis.set(f'{ctx.guild.id}_lang', lang)
+        update_msg = self.bot.language.get_message(f'{cur_lang}.settings_updated')
+        await ctx.send(update_msg)
 
         
+
 def setup(bot):
     bot.add_cog(Mod(bot))

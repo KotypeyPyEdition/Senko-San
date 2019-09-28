@@ -296,8 +296,7 @@ class Music(commands.Cog):
                                                          rest_uri=config.lavalink_rest_url,
                                                          password=config.lavalink_password,
                                                          identifier=config.lavalink_identifier,
-                                                         region=config.lavalink_region,
-                                                         secure=False)
+                                                         region=config.lavalink_region)
 
             node.set_hook(self.event_hook)
 
@@ -402,7 +401,7 @@ class Music(commands.Cog):
 
     @commands.command(name='play', aliases=['sing'])
     @commands.cooldown(1, 2, commands.BucketType.user)
-    async def play_(self, ctx, *, query: str):
+    async def play_(self, ctx, *, query: str=None):
         """Queue a song or playlist for playback.
 
         Aliases
@@ -421,12 +420,23 @@ class Music(commands.Cog):
             {ctx.prefix}play What is love?
             {ctx.prefix}play https://www.youtube.com/watch?v=XfR9iY5y94s
         """
+
+        if not query:
+            return await ctx.send("Usage: ;play (URL or query)")
         await ctx.trigger_typing()
 
         await ctx.invoke(self.connect_)
         query = query.strip('<>')
 
         player = self.bot.wavelink.get_player(ctx.guild.id, cls=Player)
+
+        try:
+            tracks = await self.bot.wavelink.get_tracks(query)
+        except Exception as e:
+            await ctx.send('Auto reconnect to lavalink...')
+            await self.initiate_nodes()
+            await ctx.invoke(self.play_, query=query)
+
 
         if not player.is_connected:
             return await ctx.send('Bot is not connected to voice. Please join a voice channel to play music.')
@@ -436,11 +446,36 @@ class Music(commands.Cog):
 
         if not RURL.match(query):
             query = f'ytsearch:{query}'
-
         tracks = await self.bot.wavelink.get_tracks(query)
         if not tracks:
             return await ctx.send('No songs were found with that query. Please try again.')
-
+        counter = 0
+        track_list = []
+        for i in tracks:
+            counter += 1
+            if counter == 11:
+                break
+            track_list.append(f"**{counter}** | {i.title}")
+            
+        await ctx.send('\n'.join(track_list))
+        await ctx.send('Select a Song by number (1-10) 0 - cancel')
+        try:
+            message = await self.bot.wait_for('message', check=lambda m: m.channel.id == ctx.message.channel.id and m.author.id == ctx.author.id, timeout=15)
+        except asyncio.TimeoutError as e:
+            await message.edit(content='You took to long')
+        else:
+            
+            try:
+                if int(message.content) == 0:
+                    return await ctx.send(":ok_hand:")
+               
+                selected = int(message.content) - 1
+                if selected < 0 or selected > 10:
+                    return await ctx.send("Unknown track")
+            except Exception as e:
+                await ctx.send('Something went wrong...')
+            else:
+                track = selected
         if isinstance(tracks, wavelink.TrackPlaylist):
             for t in tracks.tracks:
                 await player.queue.put(Track(t.id, t.info, ctx=ctx))

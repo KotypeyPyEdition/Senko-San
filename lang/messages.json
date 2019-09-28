@@ -1,0 +1,23 @@
+{
+    "en": {
+        "hello": "Hello world!",
+        "curent_lang": "Current language is `{0}`",
+        "available_langs": "Available languages `{}`",
+        "settings_updated": "Guild settings updated succsessfuly",
+        "clear_cmd_provide_msg_amout": "Provide amout of messages! (max 100)",
+        "clear_cmd_max_limit": "Maximum bulk delete limit is 100, I can`t delete more than 100 messages",
+        "clear_cmd_deleted": "Done",
+        "clear_cmd_invalid_user": "Looks like this user is not a guild member"
+    },
+
+    "ru": {
+        "hello": "Привет, мир!",
+        "curent_lang": "Язык, который установлен сейчас: `{0}`",
+        "available_langs": "Доступные языки `{}`",
+        "settings_updated": "Настройки сервера обновлены",
+        "clear_cmd_provide_msg_amout": "Укажите, сколько удалить сообщений! (максимально 100)",
+        "clear_cmd_max_limit": "Дискорд позволяет удалять ботам максимум 100 сообщений за раз. Невозможно удалить больше 100 сообщений",
+        "clear_cmd_deleted": "Готово",
+        "clear_cmd_invalid_user": "Хмм, похоже что этого участника нет в гильдии"
+    }
+}
