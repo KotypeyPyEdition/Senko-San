@@ -1,2 +1,2 @@
-# Sagiri-bot
-Sagiri bot is now open src
+# Senko-bot
+Senko bot is now open src
