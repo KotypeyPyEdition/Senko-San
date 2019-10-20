@@ -1,2 +1,2 @@
 # Senko-bot
-Senko bot is now open src
+Проект был закрыт и здесь больше не будет изменений
