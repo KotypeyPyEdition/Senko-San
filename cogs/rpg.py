@@ -2,37 +2,26 @@ from discord.ext import commands
 import utils.database as ud
 import discord
 from utils import pm
-
-class Rpg(commands.Cog):
+from utils import ticktock
+class Rpg(commands.Cog, name='Games'):
     def __init__(self, bot):
         self.bot = bot
         self.d = ud.DBUtils(self.bot)
-        
-        
-    @commands.command(name='inventory', aliases=['inv'])
-    async def inv(self, ctx):
-        inv = self.d.get_user_inventory_list(ctx.author.id)
-        l = []
-        for i in inv:
-            l.append("{} : PWR {}".format(i.title, i.power))
-            
-        if len(l) == 0:
-            inv1 = 'there are only cockroaches'
-        else:
-            inv1 = '\n'.join(l)
-        embed = discord.Embed(title='{}`s inventory'.format(ctx.author.name), description=inv1)
-        embed.color = 0x26abbf
-        
-        await ctx.send(embed=embed)
 
+    @commands.is_owner()
+    @commands.command()
+    async def ttt(self, ctx: commands.Context, target: discord.Member=None):
+        if not target:
+            return await ctx.send('Usage: sen!ttt @user#1234')
+        ttt = ticktock.TickTock(ctx, target)
+        await ttt.prestart()
 
     @commands.command(name='pvp')
-    async def pvp(self, ctx, target=None, bid=0):
+    async def pvp(self, ctx, target: discord.Member=None, bid=0):
         if not target:
             await ctx.send(f'usage {ctx.prefix}pvp @user#1234')
             return
-        target_ = target 
-        manager = pm.Pm(ctx, ctx.author.id, target_)
+        manager = pm.Pm(ctx, ctx.author.id, target.id)
         await manager.start()                                                           
 def setup(bot):
     bot.add_cog(Rpg(bot))

@@ -3,7 +3,7 @@ import discord
 token = None
 prefix = '!'
 
-disabled_commands = ['me', 'top', 'pvp', 'buy', 'profile_edit', 'report', 'inventory', 'shop']
+disabled_commands = ['me', 'top', 'pvp', 'buy', 'profile_edit', 'report', 'inventory']
 
 #lavalink
 lavalink_host = None

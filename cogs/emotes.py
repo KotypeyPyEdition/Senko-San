@@ -6,6 +6,7 @@ class Emotes(commands.Cog):
         self.bot = bot
         
     @commands.command()
+    @commands.bot_has_permissions(embed_links=True)
     async def hug(self, ctx : commands.Context, user=None):
         if not user:
             return await ctx.send("Provide user")
@@ -18,6 +19,7 @@ class Emotes(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command()
+    @commands.bot_has_permissions(embed_links=True)
     async def slap(self, ctx : commands.Context, user=None):
         if not user:
             return await ctx.send("Provide user")
@@ -25,11 +27,12 @@ class Emotes(commands.Cog):
         if user.id == ctx.author.id:
             return await ctx.send('FOOOOOOO ')
         image = await self.image_by_tag('slap')
-        embed = discord.Embed(title=':( ', color=discord.Colour.green(), description=f'{ctx.author.mention} slapping {user.mention}')
+        embed = discord.Embed(title=':( ', color=discord.Colour.green(), description=f'{ctx.author.mention} gives a slap to {user.mention}')
         embed.set_image(url=image)
         await ctx.send(embed=embed)
 
     @commands.command()
+    @commands.bot_has_permissions(embed_links=True)
     async def baka(self, ctx : commands.Context, user=None):
         if not user:
             return await ctx.send("Provide user")
@@ -44,6 +47,7 @@ class Emotes(commands.Cog):
 
 
     @commands.command()
+    @commands.bot_has_permissions(embed_links=True)
     async def kiss(self, ctx : commands.Context, user=None):
         if not user:
             return await ctx.send("Provide user")
@@ -58,6 +62,7 @@ class Emotes(commands.Cog):
     
 
     @commands.command()
+    @commands.bot_has_permissions(embed_links=True)
     async def pat(self, ctx : commands.Context, user=None):
         if not user:
             return await ctx.send("Provide user")

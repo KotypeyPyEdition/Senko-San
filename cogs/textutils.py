@@ -96,8 +96,9 @@ class Textutils(commands.Cog):
             await message.edit(content='> You need to put link or make an attachment with your image')
             return
 
-        if ctx.message.attachments:
-            url = ctx.message.attachments[0].url
+        if not url:
+            if ctx.message.attachments:
+                url = ctx.message.attachments[0].url
 
         if lang not in ('rus', 'eng', 'ukr'):
             return await message.edit(content='> Provide language: `eng` or `rus`, `ukr`')

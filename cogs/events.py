@@ -19,29 +19,51 @@ class Event(commands.Cog):
             ctx = await self.bot.get_context(m)
             cmd = self.bot.get_command(config.aliases[cnt])
             await ctx.invoke(cmd)
-        if('senko' in m.content.lower() or 'сэнко' in m.content.lower() or 'senko-san' in m.content.lower()):
-            await m.channel.send('Nya {} ||{} ms||'.format(config.emojis['ping'], round(self.bot.latency *1000, 3)))
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
         error = getattr(error, 'original', error)
         if isinstance(error, commands.CommandNotFound):
             return
-        elif isinstance(error, commands.CommandInvokeError):
-         await ctx.send(str(error))
-        if isinstance(error, commands.NSFWChannelRequired):
-            await ctx.send("You can use this command in NSFW channel")
-        elif isinstance(error, discord.Forbidden):
-            await ctx.send("I dont have permissions to do this!")
+        elif isinstance(error, commands.BotMissingPermissions):
+
+            x = []
+            counter = 0
+            for i in error.missing_perms:
+                counter += 1
+                x.append(f'{counter} - {i}')
+            msg = """
+>>> Bot need the following permissions:
+```markdown
+{}
+```
+               """.format('\n'.join(x))
+            await ctx.send(msg)
+        elif isinstance(error, commands.MissingPermissions):
+
+
+            x = []
+            counter = 0
+            for i in error.missing_perms:
+                counter += 1
+                x.append(f'{counter} - {i}')
+            msg = """
+>>> You need the following permissions:
+```markdown
+{}
+```
+               """.format('\n'.join(x))
+            await ctx.send(msg)
         elif isinstance(error, commands.CommandOnCooldown):
-            embed = discord.Embed(title=f"Error cooldown are enabled, wait {error} to use it again!", colour=discord.Colour(0xda1013))
-            await ctx.send(embed=embed)
+            await ctx.send(f'>>> Error: this command has a delay, wait {error} seconds before use')
+        elif isinstance(error, commands.BadArgument):
+            await ctx.send(error)
         elif isinstance(error, commands.NotOwner):
             await ctx.send('тебе это низя! ненене {}'.format(config.emojis['smug']))
-        elif isinstance(error, commands.errors.BotMissingPermissions):
-            await ctx.send(error)
         elif isinstance(error, discord.ext.commands.MissingRequiredArgument):
             await ctx.send('Not enough arguments')
+        elif isinstance(error, discord.Forbidden):
+            await ctx.send('Kindly provide me the permissions to do so')
         elif isinstance(error, discord.ext.commands.CheckFailure):
             disabled = ', '.join(config.disabled_commands)
             await ctx.send(f'Oh, no looks this command is disabled for you (currently disabled commands: `{disabled}`) due rewriting from mysql to redis')

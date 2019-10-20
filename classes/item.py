@@ -3,12 +3,11 @@ import utils.database as ub
 class item:
     def __init__(self, tid, bot):
         self.id = tid
-        self.db = ub.DBUtils()
-        self.execute('SELECT * FROM `items` WHERE item_id = {}'.format(self.id))
-        self.dict = cursor.fetchall()[0]
-        self.title = self.dict[1]
-        self.cost = self.dict[2]
-        self.power = self.dict[3]
+        self.db = ub.DBUtils(bot)
+        self.dict = self.db.get_item_data(self.id)
+        self.title = self.dict['title']
+        self.cost = self.dict['cost']
+        self.power = self.dict['power']
 
 
     def dict_(self):

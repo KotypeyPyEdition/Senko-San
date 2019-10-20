@@ -401,7 +401,7 @@ class Music(commands.Cog):
 
     @commands.command(name='play', aliases=['sing'])
     @commands.cooldown(1, 2, commands.BucketType.user)
-    async def play_(self, ctx, *, query: str=None):
+    async def play_(self, ctx: commands.Context, *, query: str=None):
         """Queue a song or playlist for playback.
 
         Aliases
@@ -433,9 +433,7 @@ class Music(commands.Cog):
         try:
             tracks = await self.bot.wavelink.get_tracks(query)
         except Exception as e:
-            await ctx.send('Auto reconnect to lavalink...')
-            await self.initiate_nodes()
-            await ctx.invoke(self.play_, query=query)
+            return await ctx.send('Oh, no look our music module again broken :eyes:')
 
 
         if not player.is_connected:
@@ -456,27 +454,52 @@ class Music(commands.Cog):
             if counter == 11:
                 break
             track_list.append(f"**{counter}** | {i.title}")
-            
-        await ctx.send('\n'.join(track_list))
-        await ctx.send('Select a Song by number (1-10) 0 - cancel')
+        tmp2 = []
+        nsg = await ctx.send('\n'.join(track_list))
+        tmp2.append(nsg)
+        a = await ctx.send('Select a Song by number (1-10) 0 - cancel')
+        tmp2.append(nsg)
         try:
             message = await self.bot.wait_for('message', check=lambda m: m.channel.id == ctx.message.channel.id and m.author.id == ctx.author.id, timeout=15)
         except asyncio.TimeoutError as e:
-            await message.edit(content='You took to long')
+            await ctx.send(content='You took to long', delete_after=5)
+            for i in tmp2:
+                try: await i.delete()
+                except: pass
+
         else:
             
             try:
                 if int(message.content) == 0:
+                    for i in tmp2:
+                        try:
+                            await i.delete()
+                        except:
+                            pass
                     return await ctx.send(":ok_hand:")
-               
+
                 selected = int(message.content) - 1
                 if selected < 0 or selected > 10:
+                    for i in tmp2:
+                        try:
+                            await i.delete()
+                        except:
+                            pass
                     return await ctx.send("Unknown track")
+
             except Exception as e:
+                for i in tmp2:
+                    try:
+                        await i.delete()
+                    except:
+                        pass
                 await ctx.send('Something went wrong...')
             else:
                 track = selected
         if isinstance(tracks, wavelink.TrackPlaylist):
+            for i in tmp2:
+                try: await i.delete()
+                except: pass
             for t in tracks.tracks:
                 await player.queue.put(Track(t.id, t.info, ctx=ctx))
 

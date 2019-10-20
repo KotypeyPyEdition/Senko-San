@@ -4,8 +4,7 @@ import config
 from aiohttp import ClientSession
 from discord.ext import commands
 from colorama import init, Fore
-from utils import redis
-from utils import DiscordBotListAPI
+from utils import redis, database
 init()
 class SenkoSanBot(commands.Bot):
 
@@ -16,6 +15,7 @@ class SenkoSanBot(commands.Bot):
     )
     self.redis = redis.Redis()
     self.load()
+    self.database = database.DBUtils(self)
     self.blacklisted_cache = {}
     
   

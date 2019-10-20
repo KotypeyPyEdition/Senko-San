@@ -11,162 +11,101 @@ import asyncio
 import textwrap
 import random
 import qrcode
+import random
 import io
 import json
+import aiohttp
 import apiai
 import config
 import requests
+from googletrans import Translator
 import time
 import datetime
 from functools import partial
 from utils import imaging
+from main import SenkoSanBot
 class User(commands.Cog):
-	def __init__(self, bot):
+	def __init__(self, bot: SenkoSanBot):
 		self.bot = bot
 		self.d = dbu.DBUtils(self.bot)
 		self.img_utils = imaging.ImgUtils(self.bot)
 	@commands.cooldown(1.0, 8, commands.BucketType.user)
 	@commands.command(name="me")
-	async def me(self, ctx):
-		func = partial(self.img_utils.profile_image, ctx.author)
-		a = await self.bot.loop.run_in_executor(None, func)
-		await ctx.send('disabled')
+	async def me(self, ctx: commands.Context, usr:discord.Member = None):
+		"""
+		Usage: sen!me {member}
 
-
-
-	@commands.command()
-	async def top(self, ctx):
-		db, cursor = dbu.DBUtils().connect()
-		cursor.execute('SELECT * FROM user_leveling')
-		db2 = cursor.fetchall()
-		db3 = {}
-		for i in db2:
-			db3[i[0]] = i[3]
-		raw = db3
-        
-		board = sorted(raw.items(), key=lambda x: x[1], reverse=True)[:10]
-		counter = 0
-		leaderboard = []
-		for x in board:
-			user = self.bot.get_user(int(x[0]))
-			if not user:
-				continue
-			coins = x[1]
-			counter += 1
-			leveling = dbu.DBUtils().get_user_leveling(user)
-
-
-
-            #Emojis
-			Xp_bottle = discord.utils.get(self.bot.emojis, name='Xp_bottle')
-			Xp = discord.utils.get(self.bot.emojis, name='Xp')
-			gold = discord.utils.get(self.bot.emojis, name='Gold_Nugget')
+		Show your or Members profile
+		"""
+		if not usr:
+			usr = ctx.author
+		try:
+			res = self.d.get_user_leveling(usr.id)
+		except:
+			await ctx.send('This user is not have leveling profile')
+		else:
 			
-			
-			user_xp = f"{str(leveling['xp'])}/ {str(leveling['level'] * 300)}"
-			user_lvl = str(leveling['level'])
-			
-			leaderboard.append(f'`{counter}` | **{user}** :: `{coins}` {str(gold)}, {str(Xp_bottle)} `{user_lvl}`, {str(Xp)} `{user_xp}`')
-		e = discord.Embed()
-		e.description = '\n'.join(leaderboard)
-		e.set_author(name=str(ctx.author), icon_url=ctx.author.avatar_url)
-		e.set_footer(text=ctx.prefix + ctx.command.qualified_name, icon_url=ctx.guild.me.avatar_url)
-		e.color = ctx.guild.me.color
-		db.disconnect()
-		await ctx.send(embed=e)
+			gold = discord.utils.get(self.bot.emojis, name='senkocoins')
+			xp = discord.utils.get(self.bot.emojis, name='Xp')
+			xp_bottle = discord.utils.get(self.bot.emojis, name='Xp_bottle')
+			embed = discord.Embed()
+			embed.colour = discord.Color.green()
+			embed.description = f"""
+			{xp} : {res['xp']} / {res['level'] * 10}
+			{xp_bottle} : {res['level']}
+			{gold} : {res['gold']}
+
+
+			You need {(res['level'] * 10) - res['xp']} xp to next level!
+			"""
+			embed.title = f'{usr.name}`s profile'
+			await ctx.send(embed=embed)
+
+
+
 		
 
 
-	@commands.command()
-	async def profile_edit(self, ctx):
-		func_list = ['description']
-		args = ctx.message.content.split(' ')
-		if(len(args) == 1):
-			await ctx.send(f':x: you need to provide functions! function list: `{" ".join(func_list)}`')
-			return
-		func = args[1]
-		if(func not in func_list):
-			await ctx.send(f':x: function {func} not found, function list: `{" ".join(func_list)}``')
-			return
-		elif func == 'description':
-			if len(args) == 2:
-				await ctx.send(':x: you must to provide desciprion')
-				return
-			db = dbu.DBUtils()
-			c = ctx.message.content.split(' ')
-			del c[0]
-			del c[0]
-			c = ' '.join(c)
-			db.edit_desc(ctx.message.author, c)
-			await ctx.send(f"i setted your profile description to `{c}`")
 			
 	@commands.command()
 	@commands.bot_has_permissions(manage_webhooks=True)
 	async def mebot(self, ctx, *, msg: commands.clean_content):
+		'''
+		Needs permissions: manage webhooks
+
+		Usage: sen!mebot shoto
+		'''
 		await ctx.message.delete()
 		w = await ctx.channel.create_webhook(name=ctx.author.name)
 		await w.send(msg, avatar_url=ctx.author.avatar_url)
 		
 		await w.delete()
 
-	@commands.command(name='web', aliases=['support'])
-	async def web(self, ctx):
-		await ctx.send('**Support me or view statistic on http://src-bot.tk/**')
 
 
 	@commands.command(name='invite')
 	async def invite(self, ctx):
+		'''
+		get invite link for the bot
+		'''
 		embed = discord.Embed(title="UwU you want invite me?", colour=discord.Colour(0x45487a), description="to invite me [click here](https://discordapp.com/api/oauth2/authorize?client_id=598492095682052097&permissions=8&scope=bot)")
 		await ctx.send(embed=embed)
 
 
-
-	@commands.command(name='shop')
-	async def shop(self, ctx):
-		db = dbu.DBUtils()
-		res = db.get_shop_list()
-		embed = discord.Embed(title='shop', description='\n'.join(res))
-		embed.color = 0x1abcc4
-		await ctx.message.channel.send(embed=embed)
-	@commands.command()
-	async def buy(self, ctx, item=None):
-		if item == None:
-			await ctx.send('Provide item!')
-			return
-		try:
-			item = classes.item.item(item)
-		except Exception as e:
-			await ctx.send('Item not found!')
-		else:
-			mapa = self.d.get_user_leveling(ctx.author)
-			if(item.cost > mapa['gold']):
-				await ctx.send('Not enougt gold!')
-				return
-			
-			embed = discord.Embed(title='confrimation', description='Press ✅ to buy it for cancel press ❎')
-			embed.add_field(name='Item', value=str(item))
-			message = await ctx.send(embed=embed)
-
-
-			try:
-				await message.add_reaction('✅')
-				await message.add_reaction('❎')
-				r, u = await self.bot.wait_for('reaction_add', check=lambda r, u: r.message.id == message.id and u.id == ctx.author.id, timeout=15)
-			except asyncio.TimeoutError as e:
-				await message.edit(content='Timed out')
-			else:
-				if str(r) == '❎':
-					await ctx.send('canceled')
-				elif str(r) == '✅':
-					self.d.remove_gold(ctx.author, item.cost)
-					self.d.add_item(ctx.author.id, item.id)
-					await ctx.send('✅ you now have 1 {}'.format(item.title))
 
 
 
 
 	@commands.command()
 	async def minesweeper(self, ctx, size='10x10'):
+		'''
+		The simple and no rule minesweeper
+
+
+		:param ctx:
+		:param size:
+		:return:
+		'''
 		size = size.split('x')
 		text = ''
 		if int(size[0]) > 14 or int(size[1]) > 14 or int(size[0]) < 1 or int(size[1]) < 1:
@@ -186,6 +125,12 @@ class User(commands.Cog):
 
 	@commands.command(name='ai')
 	async def ai(self, ctx, *, message=None):
+		'''
+		Bot have a brain
+		:param ctx:
+		:param message:
+		:return:
+		'''
 		if not message:
 			await ctx.send(f'Usage: {ctx.prefix}ai hello')
 			return
@@ -202,11 +147,24 @@ class User(commands.Cog):
 
 	@commands.command()
 	async def home(self, ctx):
-		await ctx.send('Home here -> **https://discord.gg/vs7qj5q**')
+		'''
+		Send invite to home server
+		:param ctx:
+		:return:
+		'''
+		await ctx.send('Home here -> **https://discord.gg/D6QyAAS**')
 
 
 	@commands.command()
 	async def py(self, ctx, *, kod=None):
+
+		'''
+
+		Run python code in sandbox
+		:param ctx:
+		:param kod:
+		:return:
+		'''
 		if not kod:
 			await ctx.send('Usage: ;py {code}')
 			return
@@ -216,13 +174,16 @@ class User(commands.Cog):
 		kod = kod.replace('py', ' ')
 		kod = kod.replace('```', ' ')
 		po = {"cmd": 'python main.cpp', "src": kod}
-		r = requests.post('http://coliru.stacked-crooked.com/compile', data=json.dumps(po))
+		#r = requests.post('', data=)
+		async with aiohttp.ClientSession().post('http://coliru.stacked-crooked.com/compile', data=json.dumps(po)) as res:
+			r = await res.read()
 		tim = int(time.time())
-		res = r.text
+
+		res = str(r).strip('b').strip('\'').strip('\n')
 		if len(res) == 0:
 			res = 'No output'
 		else:
-			res = r.text[:1000]
+			res = res[:1000]
 		embed = discord.Embed(title='Python executor', color=discord.Colour.green(), description=f'```{res}```')
 		embed.set_footer(text='Executed in {} seconds'.format(tim - cur_time))
 
@@ -231,6 +192,14 @@ class User(commands.Cog):
 
 	@commands.command()
 	async def blacklist(self, ctx):
+		'''
+		Shows all blacklisted users
+
+
+		:param ctx:
+		:return:
+		'''
+		await ctx.send('Wait, we need to fetch all users')
 		r = self.bot.blacklisted_cache
 		pag = paginator.Paginator(ctx, self.bot, 'None')
 		for i in r:
@@ -245,16 +214,38 @@ class User(commands.Cog):
 		await pag.paginate()
 
 
-	@commands.has_permissions(manage_message=True)
+	@commands.has_permissions(manage_channels=True)
 	@commands.command()
-	async def set_name(self, ctx, *, name=None):
+	@commands.bot_has_permissions(manage_channels=True)
+	async def setname(self, ctx, *, name=None):
+		'''
+		Needs permissions: manage_channels
+
+
+		Set channel name (With spaces )
+
+
+		:param ctx:
+		:param name:
+		:return:
+		'''
 		if not name:
 			return await ctx.send(f'Usage: {ctx.prefix}set_name name')
-		name = name.replace(' ', '\u2009')
+		name = name.replace(' ', '\u2009\u2009')
 		await ctx.channel.edit(name=name)
 		await ctx.send('Channel updated!')
 	@commands.command()
 	async def embed(self, ctx: commands.Context, *, code: str=None):
+		'''
+
+		Usage: sen!embed code
+
+
+		Parse code and generate a embed
+		:param ctx:
+		:param code:
+		:return:
+		'''
 
 		help_ = """
 		tags:
@@ -276,7 +267,6 @@ class User(commands.Cog):
 			return await ctx.send(help_)
 		
 		try:
-			code = code.replace("'", "\"")
 			codes = json.loads(code)
 			embed = discord.Embed()
 		except Exception as e:
@@ -314,16 +304,59 @@ class User(commands.Cog):
 						embed.set_thumbnail(url=codes[i])
 					elif i == 'author':
 						embed.set_author(codes[i]['name'], url=codes[i]['url'], icon_url=codes[i]['icon_url'])
-					
+				await ctx.send(embed=embed)
 			except Exception as e:
 				return await ctx.send(f'In Embed Build Excpetion: {e}')
-			
-
-			await ctx.send(embed=embed)
-
 
 	@commands.command()
-	async def report(self, ctx, userid=None, reason=None, proof=None):
-		pass
+	@commands.cooldown(1, 3600, commands.BucketType.user)
+	async def work(self, ctx):
+		'''
+		Usage: sen!work
+
+		Get some money $$$
+		:param ctx:
+		:return:
+		'''
+		coins = random.randrange(3000)
+		await ctx.send(f"You worked and got {coins} coins")
+		self.bot.database.add_gold(ctx.author.id, coins)
+	@commands.command()
+	async def translate(self, ctx: commands.Context, lang: str=None, *, text: str=None):
+		'''
+		Usage: sen!translate lang text
+
+		Examples: sen!translate en привет мир
+		:param ctx:
+		:param lang:
+		:param text:
+		:return:
+		'''
+		if not lang or not text:
+			return await ctx.send(f"""
+			usage: {ctx.prefix}transtlate ru OMAEVA SINDEIRU NUNI?
+			""")
+		try:
+			text = Translator().translate(text=text, dest=lang)
+		except:
+			await ctx.send('Invalid language proivded')
+		embed = discord.Embed()
+		embed.colour = discord.Colour.from_rgb(255,255,0)
+		embed.description = f"""
+		```
+result: {text.text}
+
+
+source: {text.src}
+
+pronunciation: {text.pronunciation}
+		```
+		"""
+
+
+		await ctx.send(embed=embed)
+
+
+
 def setup(bot):        
 	bot.add_cog(User(bot))

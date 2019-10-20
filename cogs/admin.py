@@ -15,39 +15,24 @@ class Admin(commands.Cog):
 
     @commands.is_owner()
     @commands.command()
-    async def set(self, ctx: commands.Context, key=None, value=None):
-        if not key and value or not key or not value:
-            return await ctx.send('usage: ;set KEY VALUE')
-
-        res = self.bot.redis.set(key, value)
-        await ctx.send(res)
-
-    @commands.is_owner()
-    @commands.command()
-    async def get(self, ctx: commands.Context, key=None):
-        if not key:
-            return await ctx.send('Usage: ;get KEY')
-
+    async def addgold(self, ctx: commands.Context, usr: discord.Member=None, count=None):
+        if not usr or not count:
+            return await ctx.send('Usage: ;addgold @user1234 1234')
         try:
-            res = self.bot.redis.get(key)
-            await ctx.send(res)
+            self.db.add_gold(usr.id, int(count))
+            await ctx.message.add_reaction("✅")
         except Exception as e:
-            res = str(e)
-            await ctx.send('Not found')
+            await ctx.message.add_reaction("❌")
+            await ctx.author.send(e)
+
 
     @commands.is_owner()
     @commands.command()
-    async def add_item(self, ctx, user: discord.Member=None, item=None):
-        if not user and item or not user or not item:
-            return await ctx.send('Usage: ;add_item @user#0000 1')
-
-        self.db.add_item(user.id, item)
-        await ctx.send('added')
-    @commands.is_owner()
-    @commands.command()
-    async def exec(self, ctx, *, cmd):
+    async def rmgold(self, ctx: commands.Context, usr: discord.Member=None, count=None):
+        if not usr or not count:
+            return await ctx.send('Usage: ;addgold @user1234 1234')
         try:
-            self.bot.redis.execute_command(cmd)
+            self.db.add_gold(usr.id, -int(count))
             await ctx.message.add_reaction("✅")
         except Exception as e:
             await ctx.message.add_reaction("❌")
@@ -61,6 +46,31 @@ class Admin(commands.Cog):
         else:
             await ctx.send(":ok:")
             exit()
+    @commands.is_owner()
+    @commands.command()
+    async def additem(self, ctx: commands.Context, usr: discord.Member=None, itm=None):
+        if not usr or not itm:
+            return await ctx.send('Usage: ;additem @user1234 1')
+        self.db.add_item(usr.id, itm, 1)
+        await ctx.message.add_reaction("✅")
+
+    @commands.is_owner()
+    @commands.command()
+    async def addxp(self, ctx: commands.Context, usr: discord.Member=None, itm=None):
+        if not usr or not itm:
+            return await ctx.send('Usage: ;addxp @user1234 1')
+        self.db.add_xp(usr.id, itm)
+        await ctx.message.add_reaction("✅")
+
+    @commands.is_owner()
+    @commands.command()
+    async def eval(self, ctx, *, code):
+        try:
+            res = eval(code)
+        except Exception as e:
+            await ctx.send(e)
+        
+        await ctx.send(res)
 
 def setup(bot):
     bot.add_cog(Admin(bot))

@@ -101,7 +101,7 @@ class Paginator:
 
     async def to_page(self, page):
 
-        if page == len(self.pages):
+        if page > len(self.pages) or page == len(self.pages):
             return
         elif page < 0:
             return
